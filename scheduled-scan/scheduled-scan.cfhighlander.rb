@@ -8,6 +8,8 @@ CfhighlanderTemplate do
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
     ComponentParam 'EnvironmentType', 'development', allowedValues: ['development','production'], isGlobal: true
+    ComponentParam 'Stacks', '', isGlobal: true
+    ComponentParam 'S3Bucket', 'source.ap-southeast-2.zac.base2services.com'
   end
 
 

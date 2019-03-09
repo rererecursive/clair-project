@@ -1,9 +1,6 @@
 CfhighlanderTemplate do
-
-  Extends 'task-definition-clair'
-
-  Name 'pipeline-scan'
-  Description "pipeline-scan - #{component_version}"
+  Name 'task-definition-clair'
+  Description "task-definition-clair - #{component_version}"
 
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true

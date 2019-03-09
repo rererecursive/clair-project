@@ -1,0 +1,2 @@
+metric_name: VulnerableImageCount
+metric_namespace: Clair
