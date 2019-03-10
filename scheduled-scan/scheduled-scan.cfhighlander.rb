@@ -5,12 +5,13 @@ CfhighlanderTemplate do
   Name 'pipeline-scan'
   Description "pipeline-scan - #{component_version}"
 
+  Component name: 'lambda', template: 'lambda', render: Inline, config: lambdas
+
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
     ComponentParam 'EnvironmentType', 'development', allowedValues: ['development','production'], isGlobal: true
     ComponentParam 'Stacks', '', isGlobal: true
     ComponentParam 'S3Bucket', 'source.ap-southeast-2.zac.base2services.com'
   end
-
 
 end
