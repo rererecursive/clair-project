@@ -1,5 +1,74 @@
 CloudFormation do
 
+  container_definitions =  [
+    {
+      Name: 'clair',
+      Image: '400480216381.dkr.ecr.ap-southeast-2.amazonaws.com/coreos-clair:latest',
+      Cpu: 1024,
+      Memory: 2048,
+      Essential: true,
+      Environment: [
+        {
+          Name: 'DB_HOST',
+          Value: 'localhost'
+        }
+      ],
+      LogConfiguration: {
+        LogDriver: 'awslogs',
+        Options: {
+          'awslogs-group' => Ref("LogGroup"),
+          "awslogs-region" => Ref("AWS::Region"),
+          "awslogs-stream-prefix" => component_name
+        }
+      }
+    },
+    {
+      Name: 'postgres',
+      Image: 'postgres:11.2',
+      Essential: true,
+      Environment: [
+        {
+          Name: 'POSTGRES_PASSWORD',
+          Value: 'password'
+        }
+      ],
+      Cpu: 1024,
+      Memory: 2048,
+      LogConfiguration: {
+        LogDriver: 'awslogs',
+        Options: {
+          'awslogs-group' => Ref("LogGroup"),
+          "awslogs-region" => Ref("AWS::Region"),
+          "awslogs-stream-prefix" => 'postgres'
+        }
+      }
+    }
+  ]
+
+  if defined? include_klar and include_klar
+    container_definitions << {
+      Name: 'klar',
+      Image: '400480216381.dkr.ecr.ap-southeast-2.amazonaws.com/klar:latest',
+      Essential: true,
+      Environment: [
+        {
+          Name: 'IMAGE',
+          Value: ''
+        }
+      ],
+      Cpu: 512,
+      Memory: 1024,
+      LogConfiguration: {
+        LogDriver: 'awslogs',
+        Options: {
+          'awslogs-group' => Ref("LogGroup"),
+          "awslogs-region" => Ref("AWS::Region"),
+          "awslogs-stream-prefix" => 'klar'
+        }
+      }
+    }
+  end
+
   Resource("TaskDefinition") {
     Type 'AWS::ECS::TaskDefinition'
     Property('Cpu', 2048)
@@ -8,50 +77,7 @@ CloudFormation do
     Property('RequiresCompatibilities', ['FARGATE'])
     Property('TaskRoleArn', Ref('TaskRole'))
     Property('ExecutionRoleArn', Ref('ExecutionRole'))
-    Property('ContainerDefinitions', [
-      {
-        Name: 'clair',
-        Image: '400480216381.dkr.ecr.ap-southeast-2.amazonaws.com/coreos-clair:latest',
-        Cpu: 1024,
-        Memory: 2048,
-        Essential: true,
-        Environment: [
-          {
-            Name: 'DB_HOST',
-            Value: 'localhost'
-          }
-        ],
-        LogConfiguration: {
-          LogDriver: 'awslogs',
-          Options: {
-            'awslogs-group' => Ref("LogGroup"),
-            "awslogs-region" => Ref("AWS::Region"),
-            "awslogs-stream-prefix" => component_name
-          }
-        }
-      },
-      {
-        Name: 'postgres',
-        Image: 'postgres:11.2',
-        Essential: true,
-        Environment: [
-          {
-            Name: 'POSTGRES_PASSWORD',
-            Value: 'password'
-          }
-        ],
-        Cpu: 1024,
-        Memory: 2048,
-        LogConfiguration: {
-          LogDriver: 'awslogs',
-          Options: {
-            'awslogs-group' => Ref("LogGroup"),
-            "awslogs-region" => Ref("AWS::Region"),
-            "awslogs-stream-prefix" => 'postgres'
-          }
-        }
-      }
-    ])
+    Property('ContainerDefinitions', container_definitions)
   }
 
   Resource('LogGroup') {
@@ -109,6 +135,11 @@ CloudFormation do
         Action: ['sts:AssumeRole']
       ]
     })
+  }
+
+  Resource('Cluster') {
+    Type 'AWS::ECS::Cluster'
+    Property('ClusterName', 'Clair')
   }
 
 end
