@@ -1,43 +1,26 @@
 component_version: 1.0.0
-maximum_availability_zones: 5
 
-metric_name: VulnerableImageCount
-metric_namespace: Clair
-
-include_klar: true
+alarms:
+  Defcon1:
+    rule_expression: [cve=CVE* && threshold=Defcon1]
+  Critical:
+    rule_expression: [cve=CVE* && threshold=Critical]
 
 lambdas:
-  distribution:
-    bucket:
-      Ref: S3Bucket
-    prefix: lambdas
-
   functions:
     stackcollector:
       handler: handler.lambda_handler
       runtime: python3.6
-      code_uri: stack-collector/handler.zip
+      code: stack-collector/handler.py
+      role: StackCollector
       timeout: 30
       environment:
         ACCOUNT_ID:
           Ref: AWS::AccountId
         TARGET_FUNCTION_ARN:
-          Fn::GetAtt: [imagecollector, Arn]
+          Fn::GetAtt: [ imagecollector, Arn ]
         STACKS:
           Ref: Stacks
-      policies:
-        logs:
-          Action:
-            - logs:PutLogEvents
-            - logs:DescribeLogStreams
-            - logs:DescribeLogGroups
-          Resource:
-            - '*'
-        lambda:
-          Action:
-            - lambda:Invoke
-          Resource:
-            - '*'
       log_retention: 14
       events:
         cron:
@@ -47,7 +30,8 @@ lambdas:
     imagecollector:
       handler: handler.lambda_handler
       runtime: python3.6
-      code_uri: image-collector/handler.zip
+      code: image-collector/handler.py
+      role: ImageCollector
       timeout: 60
       environment:
         ACCOUNT_ID:
@@ -56,54 +40,33 @@ lambdas:
           Ref: TaskDefinition
         ECS_CLUSTER:
           Ref: Cluster
-      policies:
-        logs:
-          Action:
-            - logs:PutLogEvents
-            - logs:DescribeLogStreams
-            - logs:DescribeLogGroups
-          Resource:
-            - '*'
-        lambda:
-          Action:
-            - lambda:Invoke
-          Resource:
-            - '*'
-        cloudformation:
-          Action:
-            - cloudformation:DescribeStackResources
-          Resource:
-            - '*'
-        ecs:
-          Action:
-            - ecs:DescribeTaskDefinition
-            - ecs:RunTask
-          Resource:
-            - '*'
       log_retention: 14
 
-    logstosns:
-      handler: handler.lambda_handler
-      runtime: python3.6
-      code_uri: logs-to-sns/handler.zip
-      timeout: 30
-      environment:
-        NOTIFY_SNS:
-          TODO # TODO
-      policies:
-        logs:
-          Action:
-            - logs:PutLogEvents
-            - logs:DescribeLogStreams
-            - logs:DescribeLogGroups
-          Resource:
-            - '*'
-        lambda:
-          Action:
-            - lambda:Invoke
-          Resource:
-            - '*'
-      log_retention: 14
-      events:
-        Topic:
-          type: sns
+  custom_policies:
+    invoke-lambda:
+      action:
+        - lambda:Invoke
+      resource:
+        - Fn::GetAtt: [ imagecollector, Arn ]
+    describe-cloudformation:
+      action:
+        - cloudformation:DescribeStackResources
+      resource:
+        - '*'
+    ecs:
+      action:
+        - ecs:DescribeTaskDefinition
+        - ecs:RunTask
+      resource:
+        - '*'
+
+  roles:
+    StackCollector:
+      policies_inline:
+        - cloudwatch-logs
+        - invoke-lambda
+    ImageCollector:
+      policies_inline:
+        - cloudwatch-logs
+        - describe-cloudformation
+        - ecs

@@ -1,74 +1,5 @@
 CloudFormation do
 
-  container_definitions =  [
-    {
-      Name: 'clair',
-      Image: '400480216381.dkr.ecr.ap-southeast-2.amazonaws.com/coreos-clair:latest',
-      Cpu: 1024,
-      Memory: 2048,
-      Essential: true,
-      Environment: [
-        {
-          Name: 'DB_HOST',
-          Value: 'localhost'
-        }
-      ],
-      LogConfiguration: {
-        LogDriver: 'awslogs',
-        Options: {
-          'awslogs-group' => Ref("LogGroup"),
-          "awslogs-region" => Ref("AWS::Region"),
-          "awslogs-stream-prefix" => component_name
-        }
-      }
-    },
-    {
-      Name: 'postgres',
-      Image: 'postgres:11.2',
-      Essential: true,
-      Environment: [
-        {
-          Name: 'POSTGRES_PASSWORD',
-          Value: 'password'
-        }
-      ],
-      Cpu: 1024,
-      Memory: 2048,
-      LogConfiguration: {
-        LogDriver: 'awslogs',
-        Options: {
-          'awslogs-group' => Ref("LogGroup"),
-          "awslogs-region" => Ref("AWS::Region"),
-          "awslogs-stream-prefix" => 'postgres'
-        }
-      }
-    }
-  ]
-
-  if defined? include_klar and include_klar
-    container_definitions << {
-      Name: 'klar',
-      Image: '400480216381.dkr.ecr.ap-southeast-2.amazonaws.com/klar:latest',
-      Essential: true,
-      Environment: [
-        {
-          Name: 'IMAGE',
-          Value: ''
-        }
-      ],
-      Cpu: 512,
-      Memory: 1024,
-      LogConfiguration: {
-        LogDriver: 'awslogs',
-        Options: {
-          'awslogs-group' => Ref("LogGroup"),
-          "awslogs-region" => Ref("AWS::Region"),
-          "awslogs-stream-prefix" => 'klar'
-        }
-      }
-    }
-  end
-
   Resource("TaskDefinition") {
     Type 'AWS::ECS::TaskDefinition'
     Property('Cpu', 2048)
@@ -77,13 +8,29 @@ CloudFormation do
     Property('RequiresCompatibilities', ['FARGATE'])
     Property('TaskRoleArn', Ref('TaskRole'))
     Property('ExecutionRoleArn', Ref('ExecutionRole'))
-    Property('ContainerDefinitions', container_definitions)
+    Property('ContainerDefinitions', [
+      {
+        Name: 'clair',
+        Image: 'base2/clair',
+        Cpu: 2048,
+        Memory: 4096,
+        Essential: true,
+        LogConfiguration: {
+          LogDriver: 'awslogs',
+          Options: {
+            'awslogs-group' => Ref("LogGroup"),
+            "awslogs-region" => Ref("AWS::Region"),
+            "awslogs-stream-prefix" => component_name
+          }
+        }
+      }
+    ])
   }
 
   Resource('LogGroup') {
     Type 'AWS::Logs::LogGroup'
-    Property('LogGroupName', "clair-security-scans-#{component_name}")
-    Property('RetentionInDays', 14)
+    Property('LogGroupName', "clair-security-scans")
+    Property('RetentionInDays', 90)
   }
 
   Resource('ExecutionRole') {

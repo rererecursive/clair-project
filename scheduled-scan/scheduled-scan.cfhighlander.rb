@@ -1,17 +1,18 @@
 CfhighlanderTemplate do
 
-  Extends 'task-definition-clair'
-
-  Name 'pipeline-scan'
-  Description "pipeline-scan - #{component_version}"
-
-  Component name: 'lambda', template: 'lambda', render: Inline, config: lambdas
+  Name 'scheduled-scan'
+  Description "scheduled-scan - #{component_version}"
 
   Parameters do
     ComponentParam 'EnvironmentName', 'dev', isGlobal: true
     ComponentParam 'EnvironmentType', 'development', allowedValues: ['development','production'], isGlobal: true
     ComponentParam 'Stacks', '', isGlobal: true
-    ComponentParam 'S3Bucket', 'source.ap-southeast-2.zac.base2services.com'
+    ComponentParam 'SNSCrit', "" # TODO
+    ComponentParam 'VPCId', type: 'AWS::EC2::VPC::Id'
+    ComponentParam 'SecurityGroupIds', type: 'List<AWS::EC2::SecurityGroup::Id>'
+    ComponentParam 'SubnetIds', type: 'List<AWS::EC2::Subnet::Id>'
   end
+
+  LambdaFunctions 'lambdas'
 
 end

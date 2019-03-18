@@ -1,4 +1,0 @@
-CloudFormation do
-
-
-end
